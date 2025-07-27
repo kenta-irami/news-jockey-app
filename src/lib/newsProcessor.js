@@ -7,32 +7,23 @@ import fs from "fs/promises";
 import path from "path";
 
 // --- 初期設定 ---
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
-const translator = new deepl.Translator(process.env.DEEPL_API_KEY);
-// Vercel環境でGoogle Cloudの認証情報を正しく読み込むための設定
-// 1. 環境変数からJSON文字列を取得
-const gcpCredentialsJson = process.env.GCP_CREDENTIALS_JSON;
+ // ★★★ 全てのAPIクライアントの初期化を、関数の内部に集約 ★★★
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
+  const translator = new deepl.Translator(process.env.DEEPL_API_KEY);
+  
+  // MongoDBクライアントの初期化もここへ移動
+  const mongoClient = new MongoClient(process.env.MONGODB_URI);
 
-// 2. JSON文字列をパースしてオブジェクトに変換
-//    (private_keyに含まれる改行文字 \n を本物の改行に戻すおまじない付き)
-const credentials = JSON.parse(
-  Buffer.from(gcpCredentialsJson, "base64").toString("utf-8")
-);
-
-// 3. TextToSpeechClientの初期化時に、認証情報を直接渡す
-const ttsClient = new TextToSpeechClient({ credentials });
-const mongoClient = new MongoClient(process.env.MONGODB_URI);
-
-const PROMPT_FOR_SUMMARY = `Analyse the content of the following news article link and provide a concise summary in English, consisting of three bullet points. Use "*" for each bullet point. Do not include any introductory or concluding remarks. Output only the summary. News Article Link:`;
-const OUTPUT_DIR = path.join(process.cwd(), "public", "audio");
-
-// --- メインの処理関数 ---
-// userId を引数として受け取るように変更
-export async function processNews(userId) {
-  if (!userId) {
-    throw new Error("User ID is required to process news.");
+  // Google Cloud TTSクライアントの初期化（Base64方式）
+  const gcpCredentialsBase64 = process.env.GCP_CREDENTIALS_BASE64;
+  if (!gcpCredentialsBase64) {
+    throw new Error("GCP_CREDENTIALS_BASE64 environment variable is not set.");
   }
+  const credentialsJson = Buffer.from(gcpCredentialsBase64, 'base64').toString('utf-8');
+  const credentials = JSON.parse(credentialsJson);
+  const ttsClient = new TextToSpeechClient({ credentials });
+  // ----------------------------------------------------------------
 
   let db;
   try {
