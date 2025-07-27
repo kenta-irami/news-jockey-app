@@ -1,3 +1,5 @@
+'use server'; 
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as deepl from "deepl-node";
 import Parser from "rss-parser";
