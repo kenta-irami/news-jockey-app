@@ -10,7 +10,18 @@ import path from "path";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 const translator = new deepl.Translator(process.env.DEEPL_API_KEY);
-const ttsClient = new TextToSpeechClient();
+// Vercel環境でGoogle Cloudの認証情報を正しく読み込むための設定
+// 1. 環境変数からJSON文字列を取得
+const gcpCredentialsJson = process.env.GCP_CREDENTIALS_JSON;
+
+// 2. JSON文字列をパースしてオブジェクトに変換
+//    (private_keyに含まれる改行文字 \n を本物の改行に戻すおまじない付き)
+const credentials = JSON.parse(
+  Buffer.from(gcpCredentialsJson, "base64").toString("utf-8")
+);
+
+// 3. TextToSpeechClientの初期化時に、認証情報を直接渡す
+const ttsClient = new TextToSpeechClient({ credentials });
 const mongoClient = new MongoClient(process.env.MONGODB_URI);
 
 const PROMPT_FOR_SUMMARY = `Analyse the content of the following news article link and provide a concise summary in English, consisting of three bullet points. Use "*" for each bullet point. Do not include any introductory or concluding remarks. Output only the summary. News Article Link:`;
